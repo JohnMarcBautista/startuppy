@@ -1,13 +1,24 @@
-# YC S26 Watch
+# Opportunity Platform
 
-Browse-first dashboard for the Y Combinator Summer 2026 batch.
+Browse-first dashboard with two tabs:
 
-Static site: card grid, industry/tags/rebrand filters, company detail pages, local watchlist (browser `localStorage`).
+1. **Companies** — YC Summer 2026 batch with industry/tags/rebrand filters
+2. **Jobs** — Curated job opportunities with fit/status/remote filters
+
+Static site: card grids, hash routes for detail views, local watchlists (browser `localStorage`).
+
+## Routes
+
+| Route | View |
+|-------|------|
+| `#/` or `#/companies` | Companies list |
+| `#/company/{slug}` | Company detail |
+| `#/jobs` | Jobs list |
+| `#/jobs/{id}` | Job detail |
 
 ## Local
 
 ```bash
-cd yc-s26-dashboard
 python3 -m http.server 8765
 # open http://127.0.0.1:8765/
 ```
@@ -18,4 +29,12 @@ Import this folder (or GitHub repo) on Vercel as a static project. No build comm
 
 ## Data
 
-`data.json` is generated from the public YC company directory mirror. Refresh by regenerating from the YC watch agent.
+- `data.json` — YC S26 companies. Refresh by regenerating from the YC watch agent.
+- `jobs.json` — Discovered roles export. Replace the file with a fresh export to update.
+
+### Refreshing jobs.json
+
+1. Export roles from your discovery tracker as JSON
+2. Ensure each job has these fields: `id`, `dateFound`, `company`, `role`, `roleFamily`, `fit`, `location`, `remote`, `compensation`, `source`, `url`, `status`, `whyItFits`, `watchouts`, `lastChecked`, `notes`, `briefUrl`
+3. Replace `jobs.json` in the repo root
+4. Commit and push (Vercel auto-deploys)
