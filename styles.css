@@ -1004,7 +1004,6 @@ img {
   gap: 6px;
 }
 
-
 /* ——— Watchlist export / import ——— */
 .btn-compact {
   padding: 8px 12px;
@@ -1028,4 +1027,187 @@ img {
 
 .filters-row .btn-compact {
   align-self: center;
+}
+
+/* ——— Tab Navigation ——— */
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--chip-bg);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.tab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.tab-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tab-link.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-link svg {
+  flex-shrink: 0;
+}
+
+/* ——— Page Header ——— */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ——— Jobs Cards ——— */
+.job-card {
+  min-height: 152px;
+}
+
+.job-monogram {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.job-monogram.lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.job-role {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ——— Fit Badges ——— */
+.pill-fit {
+  font-weight: 600;
+}
+
+.pill-fit.fit-very-high {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.pill-fit.fit-high {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.pill-fit.fit-medium {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.pill-fit.fit-low {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ——— Status Badges ——— */
+.pill-status {
+  font-weight: 600;
+}
+
+.pill-status.status-watch {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.pill-status.status-applied {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.pill-status.status-closed {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.pill-status.status-passed {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+/* ——— Remote/Hybrid Badges ——— */
+.badge-remote {
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+}
+
+.badge-hybrid {
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+}
+
+.badge-onsite {
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .tab-nav {
+    order: 10;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stat-chips {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
