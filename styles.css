@@ -1003,3 +1003,29 @@ img {
   align-items: center;
   gap: 6px;
 }
+
+
+/* ——— Watchlist export / import ——— */
+.btn-compact {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-compact:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.filters-row .btn-compact {
+  align-self: center;
+}
