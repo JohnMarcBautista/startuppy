@@ -104,6 +104,90 @@
     }
   }
 
+
+  function exportWatchlist() {
+    const slugs = [...watchlist];
+    const companies = (data && data.companies) || [];
+    const bySlug = new Map(companies.map((c) => [c.slug, c]));
+    const payload = {
+      version: 1,
+      exported_at: new Date().toISOString(),
+      batch: (data && data.batch_short) || "S26",
+      slugs,
+      companies: slugs.map((slug) => {
+        const c = bySlug.get(slug);
+        return c
+          ? { slug, name: c.name, one_liner: c.one_liner, industry: c.industry, yc_url: c.yc_url }
+          : { slug };
+      }),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yc-s26-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function applyImportedSlugs(slugs, mode) {
+    const clean = [
+      ...new Set(
+        (slugs || [])
+          .map((s) => (typeof s === "string" ? s.trim() : ""))
+          .filter(Boolean)
+      ),
+    ];
+    if (!clean.length) {
+      alert("No company slugs found in that file.");
+      return;
+    }
+    if (mode === "replace") {
+      watchlist = new Set(clean);
+    } else {
+      clean.forEach((s) => watchlist.add(s));
+    }
+    saveWatchlist();
+  }
+
+  function importWatchlistFromFile(file, mode) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        let slugs = [];
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          slugs = parsed.map((x) =>
+            typeof x === "string" ? x : x && x.slug
+          );
+        } else if (parsed && Array.isArray(parsed.slugs)) {
+          slugs = parsed.slugs;
+        } else if (parsed && Array.isArray(parsed.companies)) {
+          slugs = parsed.companies.map((c) =>
+            typeof c === "string" ? c : c && c.slug
+          );
+        } else {
+          throw new Error("Unrecognized watchlist format");
+        }
+        applyImportedSlugs(slugs, mode);
+        const r = parseRoute();
+        if (r.name === "home") rerenderHomePreserving(null, false);
+        else if (r.name === "company") renderDetail(r.slug);
+        else route();
+      } catch (err) {
+        alert("Couldn’t import watchlist. Use a JSON export from this app.");
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function isWatched(slug) {
     return watchlist.has(slug);
   }
@@ -296,8 +380,11 @@
         filters.watchlistOnly && watchCount === 0
           ? `<div class="empty" role="status">
             <h2>Your watchlist is empty</h2>
-            <p>Star companies from the grid or a detail page to save them here.</p>
-            <button type="button" class="btn btn-secondary" data-action="clear-watchlist-filter">Show all companies</button>
+            <p>Star companies from the grid or a detail page, or import a JSON export from another device.</p>
+            <div class="empty-actions">
+              <button type="button" class="btn btn-secondary" data-action="import-watchlist">Import watchlist</button>
+              <button type="button" class="btn btn-secondary" data-action="clear-watchlist-filter">Show all companies</button>
+            </div>
           </div>`
           : `<div class="empty" role="status">
             <h2>No companies match</h2>
@@ -346,6 +433,9 @@
                 ${starSvg(filters.watchlistOnly)}
                 Watchlist${watchCount ? ` (${watchCount})` : ""}
               </button>
+              <button type="button" class="btn btn-secondary btn-compact" data-action="export-watchlist" ${watchCount ? "" : "disabled"} title="Download watchlist JSON">Export</button>
+              <button type="button" class="btn btn-secondary btn-compact" data-action="import-watchlist" title="Import watchlist JSON">Import</button>
+              <input type="file" id="watchlist-file" accept="application/json,.json" hidden />
               <button type="button" class="toggle-pill" data-action="rebrand" aria-pressed="${filters.rebrandOnly}">
                 <span class="toggle-dot" aria-hidden="true"></span>
                 Rebrand / pivot
@@ -500,6 +590,14 @@
         } else if (action === "watchlist") {
           filters.watchlistOnly = !filters.watchlistOnly;
           rerenderHomePreserving(null, false);
+        } else if (action === "export-watchlist") {
+          exportWatchlist();
+        } else if (action === "import-watchlist") {
+          const input = document.getElementById("watchlist-file");
+          if (input) {
+            input.value = "";
+            input.click();
+          }
         } else if (action === "clear-watchlist-filter") {
           filters.watchlistOnly = false;
           rerenderHomePreserving(null, false);
@@ -527,6 +625,24 @@
         rerenderHomePreserving(null, false);
       });
     });
+
+
+    const fileInput = document.getElementById("watchlist-file");
+    if (fileInput && !fileInput.dataset.bound) {
+      fileInput.dataset.bound = "1";
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        let mode = "replace";
+        if (watchlist.size > 0) {
+          const merge = confirm(
+            "You already have starred companies.\n\nOK = merge with import\nCancel = replace watchlist"
+          );
+          mode = merge ? "merge" : "replace";
+        }
+        importWatchlistFromFile(file, mode);
+      });
+    }
 
     app.querySelectorAll("a.card").forEach((a) => {
       a.addEventListener("click", () => {
