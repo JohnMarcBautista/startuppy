@@ -38,7 +38,8 @@
    *   id: string, dateFound: string, company: string, role: string, roleFamily: string,
    *   fit: string, location: string, remote: string, compensation: string, source: string,
    *   url: string, status: string, whyItFits: string, watchouts: string, lastChecked: string,
-   *   notes: string, briefUrl: string
+   *   notes: string, briefUrl: string,
+   *   companyBlurb?: string, website?: string, logoUrl?: string
    * }} Job */
 
   /** @type {{ q: string, industries: string[], tags: string[], rebrandOnly: boolean, watchlistOnly: boolean, tagsExpanded: boolean, tagQuery: string }} */
@@ -443,6 +444,17 @@
     const alt = escapeHtml(company.name);
     if (company.logo) {
       return `<img class="${cls}" src="${escapeHtml(company.logo)}" alt="${alt} logo" loading="lazy" decoding="async" data-fallback="${ini}" onerror="this.onerror=null;const m=document.createElement('div');m.className='${monoCls}';m.textContent=this.dataset.fallback;m.setAttribute('aria-hidden','true');this.replaceWith(m);" />`;
+    }
+    return `<div class="${monoCls}" aria-hidden="true">${ini}</div>`;
+  }
+
+  function jobLogoHtml(job, sizeClass = "") {
+    const cls = sizeClass ? `job-logo ${sizeClass}` : "job-logo";
+    const monoCls = sizeClass ? `job-monogram ${sizeClass}` : "job-monogram";
+    const ini = escapeHtml(initials(job.company));
+    const alt = escapeHtml(job.company);
+    if (job.logoUrl) {
+      return `<img class="${cls}" src="${escapeHtml(job.logoUrl)}" alt="${alt} logo" loading="lazy" decoding="async" data-fallback="${ini}" onerror="this.onerror=null;const m=document.createElement('div');m.className='${monoCls}';m.textContent=this.dataset.fallback;m.setAttribute('aria-hidden','true');this.replaceWith(m);" />`;
     }
     return `<div class="${monoCls}" aria-hidden="true">${ini}</div>`;
   }
@@ -1199,6 +1211,10 @@
       ? `<span class="badge badge-hybrid">Hybrid</span>`
       : "";
 
+    const blurbHtml = j.companyBlurb
+      ? `<p class="card-blurb">${escapeHtml(j.companyBlurb)}</p>`
+      : "";
+
     return `
       <div class="card-wrap" role="listitem">
         <button type="button" class="watch-btn ${watched ? "is-watched" : ""}" data-watch-job="${escapeHtml(j.id)}" aria-pressed="${watched}" aria-label="${watched ? "Remove from watchlist" : "Add to watchlist"}" title="${watched ? "Remove from watchlist" : "Add to watchlist"}">
@@ -1206,12 +1222,13 @@
         </button>
         <a class="card job-card" href="#/jobs/${encodeURIComponent(j.id)}" data-job-id="${escapeHtml(j.id)}">
           <div class="card-top">
-            <div class="job-monogram" aria-hidden="true">${escapeHtml(initials(j.company))}</div>
+            ${jobLogoHtml(j)}
             <div class="card-meta">
               <div class="card-name-row">
                 <h2 class="card-name">${escapeHtml(j.company)}</h2>
                 ${remoteBadge}
               </div>
+              ${blurbHtml}
               <p class="card-one-liner job-role">${escapeHtml(j.role)}</p>
             </div>
           </div>
@@ -1361,6 +1378,10 @@
       ? `<span class="badge badge-onsite">On-site</span>`
       : "";
 
+    const blurbSection = job.companyBlurb
+      ? `<p class="detail-blurb">${escapeHtml(job.companyBlurb)}</p>`
+      : "";
+
     app.innerHTML = `
       <div class="shell">
         <header class="topbar">
@@ -1380,10 +1401,12 @@
           </a>
 
           <div class="detail-header">
-            <div class="job-monogram lg" aria-hidden="true">${escapeHtml(initials(job.company))}</div>
+            ${jobLogoHtml(job, "lg")}
             <div class="detail-header-text">
+              <p class="detail-company-name">${escapeHtml(job.company)}</p>
+              ${blurbSection}
               <h1>${escapeHtml(job.role)}</h1>
-              <p class="detail-one-liner">${escapeHtml(job.company)}${job.location ? ` · ${escapeHtml(job.location)}` : ""}</p>
+              <p class="detail-one-liner">${job.location ? escapeHtml(job.location) : ""}${job.location && job.compensation ? " · " : ""}${job.compensation ? escapeHtml(job.compensation) : ""}</p>
               <div class="detail-pills">
                 <span class="pill pill-fit ${fitClass}">${escapeHtml(job.fit)} Fit</span>
                 <span class="pill pill-status ${statusClass}">${escapeHtml(job.status)}</span>
@@ -1394,6 +1417,7 @@
                   ${starSvg(watched)}
                   ${watched ? "On watchlist" : "Add to watchlist"}
                 </button>
+                ${job.website ? `<a class="btn btn-secondary" href="${escapeHtml(job.website)}" target="_blank" rel="noopener noreferrer">Website<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
                 ${job.url ? `<a class="btn btn-primary" href="${escapeHtml(job.url)}" target="_blank" rel="noopener noreferrer">Apply on ${escapeHtml(job.source || "ATS")}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
                 ${job.briefUrl ? `<a class="btn btn-secondary" href="${escapeHtml(job.briefUrl)}" target="_blank" rel="noopener noreferrer">Job Brief<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
               </div>
