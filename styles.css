@@ -1085,14 +1085,21 @@ img {
 
 /* ——— Jobs Cards ——— */
 .job-card {
-  min-height: 152px;
+  min-height: 168px;
 }
 
+.job-logo,
 .job-monogram {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
   border-radius: 10px;
+  object-fit: cover;
+  background: var(--chip-bg);
+  border: 1px solid var(--border);
+}
+
+.job-monogram {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1104,6 +1111,7 @@ img {
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.job-logo.lg,
 .job-monogram.lg {
   width: 64px;
   height: 64px;
@@ -1114,6 +1122,34 @@ img {
 .job-role {
   font-weight: 500;
   color: var(--text);
+}
+
+.card-blurb {
+  margin: 2px 0 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ——— Job Detail Company ——— */
+.detail-company-name {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.detail-blurb {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 600px;
 }
 
 /* ——— Fit Badges ——— */
