@@ -8,13 +8,15 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "yc-s26-filters-v1";
+  const STORAGE_KEY = "yc-s26-filters-v2";
   const WATCHLIST_KEY = "yc-s26-watchlist-v1";
   const JOBS_STORAGE_KEY = "opp-jobs-filters-v1";
   const JOBS_WATCHLIST_KEY = "opp-jobs-watchlist-v1";
   const TOP_TAGS_VISIBLE = 12;
 
   /** @type {null | {
+   *   batches: Array<{batch: string, batch_short: string, company_count: number, hiring_count: number, rebrand_count: number, industry_summary: Record<string, number>, top_tags: Record<string, number>}>,
+   *   default_batches: string[],
    *   batch: string, batch_short: string, pulled_at: string,
    *   company_count: number, hiring_count: number, rebrand_count: number,
    *   industry_summary: Record<string, number>,
@@ -31,7 +33,7 @@
    *   industry: string, subindustry: string, tags: string[], website: string, yc_url: string,
    *   logo: string, locations: string, team_size: number|null, status: string,
    *   is_hiring: boolean, stage: string, former_names: string[], has_rebrand: boolean,
-   *   batch: string, regions: string[]
+   *   batch: string, batch_short: string, regions: string[]
    * }} Company */
 
   /** @typedef {{
@@ -42,9 +44,10 @@
    *   companyBlurb?: string, website?: string, logoUrl?: string
    * }} Job */
 
-  /** @type {{ q: string, industries: string[], tags: string[], rebrandOnly: boolean, watchlistOnly: boolean, tagsExpanded: boolean, tagQuery: string }} */
+  /** @type {{ q: string, batches: string[], industries: string[], tags: string[], rebrandOnly: boolean, watchlistOnly: boolean, tagsExpanded: boolean, tagQuery: string }} */
   let filters = {
     q: "",
+    batches: [],
     industries: [],
     tags: [],
     rebrandOnly: false,
@@ -153,15 +156,16 @@
     const slugs = [...watchlist];
     const companies = (data && data.companies) || [];
     const bySlug = new Map(companies.map((c) => [c.slug, c]));
+    const batchLabel = data && data.batches ? data.batches.map((b) => b.batch_short).join("+") : "YC";
     const payload = {
       version: 1,
       exported_at: new Date().toISOString(),
-      batch: (data && data.batch_short) || "S26",
+      batches: batchLabel,
       slugs,
       companies: slugs.map((slug) => {
         const c = bySlug.get(slug);
         return c
-          ? { slug, name: c.name, one_liner: c.one_liner, industry: c.industry, yc_url: c.yc_url }
+          ? { slug, name: c.name, one_liner: c.one_liner, industry: c.industry, batch_short: c.batch_short, yc_url: c.yc_url }
           : { slug };
       }),
     };
@@ -171,7 +175,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `yc-s26-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `yc-watchlist-${batchLabel}-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -292,6 +296,7 @@
       const parsed = JSON.parse(raw);
       filters = {
         q: typeof parsed.q === "string" ? parsed.q : "",
+        batches: Array.isArray(parsed.batches) ? parsed.batches : [],
         industries: Array.isArray(parsed.industries) ? parsed.industries : [],
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
         rebrandOnly: !!parsed.rebrandOnly,
@@ -310,6 +315,7 @@
         STORAGE_KEY,
         JSON.stringify({
           q: filters.q,
+          batches: filters.batches,
           industries: filters.industries,
           tags: filters.tags,
           rebrandOnly: filters.rebrandOnly,
@@ -340,8 +346,11 @@
   }
 
   function hasActiveFilters() {
+    const allBatches = data && data.batches ? data.batches.map((b) => b.batch_short) : [];
+    const batchesActive = filters.batches.length > 0 && filters.batches.length < allBatches.length;
     return (
       filters.q.trim() !== "" ||
+      batchesActive ||
       filters.industries.length > 0 ||
       filters.tags.length > 0 ||
       filters.rebrandOnly ||
@@ -488,12 +497,57 @@
 
   // ——— Filtering: Companies ———
 
+  function getSelectedBatches() {
+    if (!data || !data.batches) return [];
+    const allBatches = data.batches.map((b) => b.batch_short);
+    if (filters.batches.length === 0) return allBatches;
+    return filters.batches;
+  }
+
+  function computeBatchStats(selectedBatches) {
+    if (!data || !data.companies) {
+      return { company_count: 0, hiring_count: 0, rebrand_count: 0, industry_summary: {}, top_tags: {} };
+    }
+    const batchSet = new Set(selectedBatches);
+    const companies = data.companies.filter((c) => batchSet.has(c.batch_short));
+    const industry_summary = {};
+    const tagCounts = {};
+    let hiring_count = 0;
+    let rebrand_count = 0;
+
+    for (const c of companies) {
+      if (c.industry) {
+        industry_summary[c.industry] = (industry_summary[c.industry] || 0) + 1;
+      }
+      for (const t of c.tags || []) {
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
+      }
+      if (c.is_hiring) hiring_count++;
+      if (c.has_rebrand) rebrand_count++;
+    }
+
+    const top_tags = Object.fromEntries(
+      Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 40)
+    );
+
+    return {
+      company_count: companies.length,
+      hiring_count,
+      rebrand_count,
+      industry_summary,
+      top_tags,
+    };
+  }
+
   function applyFilters(companies) {
     const q = filters.q.trim().toLowerCase();
+    const selectedBatches = getSelectedBatches();
+    const batchSet = new Set(selectedBatches);
     const indSet = new Set(filters.industries);
     const tagSet = new Set(filters.tags);
 
     return companies.filter((c) => {
+      if (!batchSet.has(c.batch_short)) return false;
       if (filters.watchlistOnly && !watchlist.has(c.slug)) return false;
       if (filters.rebrandOnly && !c.has_rebrand) return false;
       if (indSet.size && !indSet.has(c.industry)) return false;
@@ -550,13 +604,24 @@
   // ——— Render: Companies Home ———
 
   function renderHome() {
-    const industries = Object.entries(data.industry_summary).sort(
+    const selectedBatches = getSelectedBatches();
+    const stats = computeBatchStats(selectedBatches);
+
+    const industries = Object.entries(stats.industry_summary).sort(
       (a, b) => b[1] - a[1]
     );
-    const topTags = Object.entries(data.top_tags).sort((a, b) => b[1] - a[1]);
+    const topTags = Object.entries(stats.top_tags).sort((a, b) => b[1] - a[1]);
     const filtered = applyFilters(data.companies);
     const active = hasActiveFilters();
     const watchCount = watchlist.size;
+
+    const allBatches = data.batches || [];
+    const batchChips = allBatches
+      .map((b) => {
+        const pressed = filters.batches.length === 0 || filters.batches.includes(b.batch_short);
+        return `<button type="button" class="chip" data-filter="batch" data-value="${escapeHtml(b.batch_short)}" aria-pressed="${pressed}">${escapeHtml(b.batch)}<span class="chip-count">${b.company_count}</span></button>`;
+      })
+      .join("");
 
     const industryChips = industries
       .map(([name, count]) => {
@@ -617,6 +682,8 @@
       cards = `<div class="grid" role="list">${filtered.map(renderCard).join("")}</div>`;
     }
 
+    const batchLabel = allBatches.map((b) => b.batch_short).join(" · ");
+
     app.innerHTML = `
       <div class="shell">
         <header class="topbar">
@@ -626,7 +693,7 @@
                 <h1>Opportunity Platform</h1>
               </div>
               <div class="brand-sub">
-                YC S26 · Updated ${escapeHtml(formatPulledAt(data.pulled_at))}
+                YC ${batchLabel} · Updated ${escapeHtml(formatPulledAt(data.pulled_at))}
               </div>
             </div>
             ${renderTabNav("companies")}
@@ -637,10 +704,10 @@
           <div class="page-header">
             <h2 class="page-title">Companies</h2>
             <div class="stat-chips" aria-label="Batch stats">
-              <span class="stat-chip"><strong>${data.company_count}</strong> companies</span>
+              <span class="stat-chip"><strong>${stats.company_count}</strong> companies</span>
               <span class="stat-chip"><strong>${industries.length}</strong> industries</span>
-              <span class="stat-chip"><strong>${data.rebrand_count}</strong> rebrands</span>
-              <span class="stat-chip secondary"><strong>${data.hiring_count}</strong> hiring</span>
+              <span class="stat-chip"><strong>${stats.rebrand_count}</strong> rebrands</span>
+              <span class="stat-chip secondary"><strong>${stats.hiring_count}</strong> hiring</span>
               <button type="button" class="stat-chip watchlist-stat ${filters.watchlistOnly ? "active" : ""}" data-action="watchlist" aria-pressed="${filters.watchlistOnly}" title="Show watchlist">
                 ${starSvg(true)}<strong>${watchCount}</strong> watchlist
               </button>
@@ -669,6 +736,11 @@
             </div>
 
             <div class="filter-section">
+              <div class="filter-label">Batch</div>
+              <div class="chip-scroll" role="group" aria-label="Filter by batch">${batchChips}</div>
+            </div>
+
+            <div class="filter-section">
               <div class="filter-label">Industry</div>
               <div class="chip-scroll" role="group" aria-label="Filter by industry">${industryChips}</div>
             </div>
@@ -686,13 +758,13 @@
           </section>
 
           <div class="results-bar">
-            <span>Showing <strong>${filtered.length}</strong> of ${filters.watchlistOnly ? watchCount + " watched" : data.company_count}</span>
+            <span>Showing <strong>${filtered.length}</strong> of ${filters.watchlistOnly ? watchCount + " watched" : stats.company_count}</span>
           </div>
 
           ${cards}
         </main>
 
-        <p class="footer-stub">Browse-only for S26</p>
+        <p class="footer-stub">Browse-only for ${batchLabel}</p>
       </div>
     `;
 
@@ -703,6 +775,9 @@
     const tags = (c.tags || []).slice(0, 3);
     const watched = isWatched(c.slug);
     const badges = [
+      c.batch_short
+        ? `<span class="badge badge-batch">${escapeHtml(c.batch_short)}</span>`
+        : "",
       c.has_rebrand
         ? `<span class="badge badge-rebrand">Rebrand</span>`
         : "",
@@ -786,6 +861,32 @@
       });
     }
 
+    app.querySelectorAll('[data-filter="batch"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-value");
+        const allBatches = data.batches ? data.batches.map((b) => b.batch_short) : [];
+        if (filters.batches.length === 0) {
+          filters.batches = allBatches.filter((b) => b !== v);
+        } else {
+          const idx = filters.batches.indexOf(v);
+          if (idx >= 0) {
+            filters.batches.splice(idx, 1);
+            if (filters.batches.length === 0) {
+              filters.batches = [];
+            }
+          } else {
+            filters.batches.push(v);
+            if (filters.batches.length === allBatches.length) {
+              filters.batches = [];
+            }
+          }
+        }
+        filters.industries = [];
+        filters.tags = [];
+        rerenderHomePreserving(null, false);
+      });
+    });
+
     app.querySelectorAll('[data-filter="industry"]').forEach((btn) => {
       btn.addEventListener("click", () => {
         const v = btn.getAttribute("data-value");
@@ -828,6 +929,7 @@
           rerenderHomePreserving(null, false);
         } else if (action === "clear") {
           filters.q = "";
+          filters.batches = [];
           filters.industries = [];
           filters.tags = [];
           filters.rebrandOnly = false;
@@ -880,6 +982,7 @@
 
   function renderDetail(slug) {
     const company = data.companies.find((c) => c.slug === slug);
+    const batchLabel = data.batches ? data.batches.map((b) => b.batch_short).join(" / ") : "YC";
     if (!company) {
       app.innerHTML = `
         <div class="shell">
@@ -894,7 +997,7 @@
           <main class="main">
             <div class="not-found">
               <h1>Company not found</h1>
-              <p>No company matches <code>${escapeHtml(slug)}</code> in the S26 batch.</p>
+              <p>No company matches <code>${escapeHtml(slug)}</code> in the ${batchLabel} batches.</p>
               <a class="btn btn-primary" href="#/">Back to companies</a>
             </div>
           </main>
@@ -952,6 +1055,7 @@
               <h1>${escapeHtml(company.name)}</h1>
               <p class="detail-one-liner">${escapeHtml(company.one_liner || "")}</p>
               <div class="detail-pills">
+                ${company.batch_short ? `<span class="badge badge-batch">${escapeHtml(company.batch_short)}</span>` : ""}
                 ${company.industry ? `<span class="pill pill-industry">${escapeHtml(company.industry)}</span>` : ""}
                 ${tags}
                 ${company.has_rebrand ? `<span class="badge badge-rebrand">Rebrand</span>` : ""}
