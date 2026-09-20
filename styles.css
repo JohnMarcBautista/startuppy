@@ -599,6 +599,14 @@ img {
   white-space: nowrap;
 }
 
+.badge-batch {
+  color: #5746af;
+  background: #f3f0ff;
+  border: 1px solid #e4daff;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 .badge-rebrand {
   color: var(--accent);
   background: var(--accent-soft);
