@@ -1255,3 +1255,203 @@ img {
     justify-content: flex-start;
   }
 }
+
+/* ——— Company Health Badges ——— */
+.badge-health {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-health.health-healthy {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-health.health-watch {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.badge-health.health-caution {
+  color: #fff;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+  font-weight: 700;
+}
+
+.badge-health.health-unknown {
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.badge-health-lg {
+  font-size: 13px;
+  padding: 6px 14px;
+}
+
+/* Health Strip on Cards */
+.health-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.health-summary {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Health filter chips */
+.chip-health {
+  border: 1px solid var(--border);
+}
+
+.chip-health.chip-health-healthy {
+  border-color: #bbf7d0;
+}
+
+.chip-health.chip-health-healthy[aria-pressed="true"] {
+  background: #166534;
+  border-color: #166534;
+  color: #fff;
+}
+
+.chip-health.chip-health-watch {
+  border-color: #fde68a;
+}
+
+.chip-health.chip-health-watch[aria-pressed="true"] {
+  background: #92400e;
+  border-color: #92400e;
+  color: #fff;
+}
+
+.chip-health.chip-health-caution {
+  border-color: #fecaca;
+}
+
+.chip-health.chip-health-caution[aria-pressed="true"] {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.chip-health.chip-health-unknown {
+  border-color: #e5e7eb;
+}
+
+.chip-health.chip-health-unknown[aria-pressed="true"] {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: #fff;
+}
+
+/* Health Section in Detail View */
+.section-health {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.health-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.health-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.health-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.health-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.health-row-layoff .health-value {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.health-row-meta {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.health-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.health-value {
+  font-size: 14px;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.health-link,
+.health-evidence-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  transition: background 0.15s var(--ease);
+}
+
+.health-link:hover,
+.health-evidence-link:hover {
+  background: var(--accent-soft);
+}
+
+.health-evidence-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.health-row-evidence {
+  padding-top: 8px;
+}
+
+.health-no-data {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
