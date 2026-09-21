@@ -57,12 +57,13 @@
     tagQuery: "",
   };
 
-  /** @type {{ q: string, fits: string[], statuses: string[], remotes: string[], watchlistOnly: boolean }} */
+  /** @type {{ q: string, fits: string[], statuses: string[], remotes: string[], healthBadges: string[], watchlistOnly: boolean }} */
   let jobFilters = {
     q: "",
     fits: [],
     statuses: [],
     remotes: [],
+    healthBadges: [],
     watchlistOnly: false,
   };
 
@@ -376,6 +377,7 @@
         fits: Array.isArray(parsed.fits) ? parsed.fits : [],
         statuses: Array.isArray(parsed.statuses) ? parsed.statuses : [],
         remotes: Array.isArray(parsed.remotes) ? parsed.remotes : [],
+        healthBadges: Array.isArray(parsed.healthBadges) ? parsed.healthBadges : [],
         watchlistOnly: !!parsed.watchlistOnly,
       };
     } catch {
@@ -392,6 +394,7 @@
           fits: jobFilters.fits,
           statuses: jobFilters.statuses,
           remotes: jobFilters.remotes,
+          healthBadges: jobFilters.healthBadges,
           watchlistOnly: jobFilters.watchlistOnly,
           scrollY: window.scrollY,
         })
@@ -422,6 +425,7 @@
       jobFilters.fits.length > 0 ||
       jobFilters.statuses.length > 0 ||
       jobFilters.remotes.length > 0 ||
+      jobFilters.healthBadges.length > 0 ||
       jobFilters.watchlistOnly
     );
   }
@@ -603,12 +607,17 @@
     const fitSet = new Set(jobFilters.fits);
     const statusSet = new Set(jobFilters.statuses);
     const remoteSet = new Set(jobFilters.remotes);
+    const healthSet = new Set(jobFilters.healthBadges);
 
     return jobs.filter((j) => {
       if (jobFilters.watchlistOnly && !jobsWatchlist.has(j.id)) return false;
       if (fitSet.size && !fitSet.has(j.fit)) return false;
       if (statusSet.size && !statusSet.has(j.status)) return false;
       if (remoteSet.size && !remoteSet.has(j.remote)) return false;
+      if (healthSet.size) {
+        const badge = j.healthBadge || "Unknown";
+        if (!healthSet.has(badge)) return false;
+      }
       if (q) {
         const hay = [
           j.company,
@@ -1232,16 +1241,19 @@
   // ——— Render: Jobs List ———
 
   function getJobStats() {
-    if (!jobsData) return { total: 0, fits: {}, statuses: {}, remotes: {} };
+    if (!jobsData) return { total: 0, fits: {}, statuses: {}, remotes: {}, healthBadges: {} };
     const fits = {};
     const statuses = {};
     const remotes = {};
+    const healthBadges = {};
     for (const j of jobsData) {
       fits[j.fit] = (fits[j.fit] || 0) + 1;
       statuses[j.status] = (statuses[j.status] || 0) + 1;
       remotes[j.remote] = (remotes[j.remote] || 0) + 1;
+      const badge = j.healthBadge || "Unknown";
+      healthBadges[badge] = (healthBadges[badge] || 0) + 1;
     }
-    return { total: jobsData.length, fits, statuses, remotes };
+    return { total: jobsData.length, fits, statuses, remotes, healthBadges };
   }
 
   function renderJobs() {
@@ -1271,6 +1283,13 @@
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
 
+    const healthOrder = ["Healthy", "Watch", "Caution", "Unknown"];
+    const healthEntries = Object.entries(stats.healthBadges).sort((a, b) => {
+      const ai = healthOrder.indexOf(a[0]);
+      const bi = healthOrder.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
     const fitChips = fitEntries
       .map(([name, count]) => {
         const pressed = jobFilters.fits.includes(name);
@@ -1290,6 +1309,14 @@
         const pressed = jobFilters.remotes.includes(name);
         const label = name === "Yes" ? "Remote" : name === "No" ? "On-site" : name;
         return `<button type="button" class="chip" data-filter="remote" data-value="${escapeHtml(name)}" aria-pressed="${pressed}">${escapeHtml(label)}<span class="chip-count">${count}</span></button>`;
+      })
+      .join("");
+
+    const healthChips = healthEntries
+      .map(([name, count]) => {
+        const pressed = jobFilters.healthBadges.includes(name);
+        const cls = `chip chip-health chip-health-${name.toLowerCase()}`;
+        return `<button type="button" class="${cls}" data-filter="health" data-value="${escapeHtml(name)}" aria-pressed="${pressed}">${escapeHtml(name)}<span class="chip-count">${count}</span></button>`;
       })
       .join("");
 
@@ -1368,6 +1395,11 @@
               <div class="filter-label">Remote</div>
               <div class="chip-scroll" role="group" aria-label="Filter by remote">${remoteChips}</div>
             </div>
+
+            <div class="filter-section">
+              <div class="filter-label">Company Health</div>
+              <div class="chip-scroll" role="group" aria-label="Filter by company health">${healthChips}</div>
+            </div>
           </section>
 
           <div class="results-bar">
@@ -1414,10 +1446,120 @@
     }
   }
 
+  function getHealthBadgeClass(badge) {
+    switch (badge) {
+      case "Healthy":
+        return "health-healthy";
+      case "Watch":
+        return "health-watch";
+      case "Caution":
+        return "health-caution";
+      default:
+        return "health-unknown";
+    }
+  }
+
+  function getHealthSummaryLine(job) {
+    if (job.layoff && job.layoff.flag && job.layoff.summary) {
+      return job.layoff.summary;
+    }
+    if (job.funding && job.funding.summary) {
+      return job.funding.summary;
+    }
+    return null;
+  }
+
+  function renderHealthSection(job) {
+    const badge = job.healthBadge || "Unknown";
+    const badgeClass = getHealthBadgeClass(badge);
+
+    let fundingHtml = "";
+    if (job.funding && job.funding.summary) {
+      const fundingDate = job.funding.date ? ` (${escapeHtml(job.funding.date)})` : "";
+      fundingHtml = `
+        <div class="health-row">
+          <span class="health-label">Funding</span>
+          <span class="health-value">${escapeHtml(job.funding.summary)}${fundingDate}</span>
+          ${job.funding.sourceUrl ? `<a class="health-link" href="${escapeHtml(job.funding.sourceUrl)}" target="_blank" rel="noopener noreferrer">Source<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
+        </div>
+      `;
+    }
+
+    let layoffHtml = "";
+    if (job.layoff && job.layoff.flag) {
+      const layoffDate = job.layoff.date ? ` (${escapeHtml(job.layoff.date)})` : "";
+      layoffHtml = `
+        <div class="health-row health-row-layoff">
+          <span class="health-label">Layoff</span>
+          <span class="health-value">${escapeHtml(job.layoff.summary || "Reported")}${layoffDate}</span>
+          ${job.layoff.sourceUrl ? `<a class="health-link" href="${escapeHtml(job.layoff.sourceUrl)}" target="_blank" rel="noopener noreferrer">Source<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
+        </div>
+      `;
+    }
+
+    let headcountHtml = "";
+    if (job.headcount && job.headcount.summary) {
+      headcountHtml = `
+        <div class="health-row">
+          <span class="health-label">Headcount</span>
+          <span class="health-value">${escapeHtml(job.headcount.summary)}${job.headcount.source ? ` (${escapeHtml(job.headcount.source)})` : ""}</span>
+        </div>
+      `;
+    }
+
+    let checkedHtml = "";
+    if (job.healthCheckedAt) {
+      checkedHtml = `
+        <div class="health-row health-row-meta">
+          <span class="health-label">Last checked</span>
+          <span class="health-value">${escapeHtml(formatDate(job.healthCheckedAt))}</span>
+        </div>
+      `;
+    }
+
+    let evidenceHtml = "";
+    if (job.healthEvidence && job.healthEvidence.length > 0) {
+      const links = job.healthEvidence.map((url, i) => 
+        `<a class="health-evidence-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Evidence ${i + 1}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>`
+      ).join("");
+      evidenceHtml = `
+        <div class="health-row health-row-evidence">
+          <span class="health-label">Evidence</span>
+          <div class="health-evidence-links">${links}</div>
+        </div>
+      `;
+    }
+
+    const hasContent = fundingHtml || layoffHtml || headcountHtml || checkedHtml || evidenceHtml;
+
+    return `
+      <section class="section section-health">
+        <h2>Company Health</h2>
+        <div class="health-content">
+          <div class="health-badge-row">
+            <span class="badge badge-health badge-health-lg ${badgeClass}">${escapeHtml(badge)}</span>
+          </div>
+          ${hasContent ? `
+          <div class="health-details">
+            ${fundingHtml}
+            ${layoffHtml}
+            ${headcountHtml}
+            ${checkedHtml}
+            ${evidenceHtml}
+          </div>
+          ` : `<p class="health-no-data">No detailed health data available for this company.</p>`}
+        </div>
+      </section>
+    `;
+  }
+
   function renderJobCard(j) {
     const watched = isJobWatched(j.id);
     const fitClass = getFitClass(j.fit);
     const statusClass = getStatusClass(j.status);
+    const healthBadge = j.healthBadge || "Unknown";
+    const healthClass = getHealthBadgeClass(healthBadge);
+    const healthSummary = getHealthSummaryLine(j);
 
     const remoteBadge = j.remote === "Yes"
       ? `<span class="badge badge-remote">Remote</span>`
@@ -1428,6 +1570,13 @@
     const blurbHtml = j.companyBlurb
       ? `<p class="card-blurb">${escapeHtml(j.companyBlurb)}</p>`
       : "";
+
+    const healthStripHtml = `
+      <div class="health-strip">
+        <span class="badge badge-health ${healthClass}">${escapeHtml(healthBadge)}</span>
+        ${healthSummary ? `<span class="health-summary">${escapeHtml(healthSummary)}</span>` : ""}
+      </div>
+    `;
 
     return `
       <div class="card-wrap" role="listitem">
@@ -1446,6 +1595,7 @@
               <p class="card-one-liner job-role">${escapeHtml(j.role)}</p>
             </div>
           </div>
+          ${healthStripHtml}
           <div class="card-pills">
             <span class="pill pill-fit ${fitClass}">${escapeHtml(j.fit)}</span>
             <span class="pill pill-status ${statusClass}">${escapeHtml(j.status)}</span>
@@ -1516,6 +1666,16 @@
       });
     });
 
+    app.querySelectorAll('[data-filter="health"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-value");
+        const idx = jobFilters.healthBadges.indexOf(v);
+        if (idx >= 0) jobFilters.healthBadges.splice(idx, 1);
+        else jobFilters.healthBadges.push(v);
+        rerenderJobsPreserving(null, false);
+      });
+    });
+
     app.querySelectorAll("[data-action]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const action = btn.getAttribute("data-action");
@@ -1530,6 +1690,7 @@
           jobFilters.fits = [];
           jobFilters.statuses = [];
           jobFilters.remotes = [];
+          jobFilters.healthBadges = [];
           jobFilters.watchlistOnly = false;
           rerenderJobsPreserving(null, false);
         }
@@ -1652,6 +1813,8 @@
               <div class="section-body">${escapeHtml(job.watchouts)}</div>
             </section>
             ` : ""}
+
+            ${renderHealthSection(job)}
 
             <section class="section">
               <h2>Details</h2>
