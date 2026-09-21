@@ -1,5 +1,5 @@
 /**
- * Opportunity Platform — vanilla SPA
+ * Startuppy — vanilla SPA
  * Hash routes:
  *   Companies: #/  #/companies  #/company/{slug}
  *   Jobs: #/jobs  #/jobs/{id}
@@ -734,7 +734,7 @@
           <div class="topbar-inner">
             <div class="brand">
               <div class="brand-title">
-                <h1>Opportunity Platform</h1>
+                <h1>Startuppy</h1>
               </div>
               <div class="brand-sub">
                 ${escapeHtml(sourceLabel)} · Updated ${escapeHtml(formatPulledAt(data.pulled_at))}
@@ -1091,7 +1091,7 @@
           <header class="topbar">
             <div class="topbar-inner">
               <div class="brand">
-                <div class="brand-title"><h1>Opportunity Platform</h1></div>
+                <div class="brand-title"><h1>Startuppy</h1></div>
               </div>
               ${renderTabNav("companies")}
             </div>
@@ -1152,7 +1152,7 @@
         <header class="topbar">
           <div class="topbar-inner">
             <div class="brand">
-              <div class="brand-title"><h1>Opportunity Platform</h1></div>
+              <div class="brand-title"><h1>Startuppy</h1></div>
               <div class="brand-sub">Company detail</div>
             </div>
             ${renderTabNav("companies")}
@@ -1345,7 +1345,7 @@
           <div class="topbar-inner">
             <div class="brand">
               <div class="brand-title">
-                <h1>Opportunity Platform</h1>
+                <h1>Startuppy</h1>
               </div>
               <div class="brand-sub">
                 Discovered roles
@@ -1724,7 +1724,7 @@
           <header class="topbar">
             <div class="topbar-inner">
               <div class="brand">
-                <div class="brand-title"><h1>Opportunity Platform</h1></div>
+                <div class="brand-title"><h1>Startuppy</h1></div>
               </div>
               ${renderTabNav("jobs")}
             </div>
@@ -1762,7 +1762,7 @@
         <header class="topbar">
           <div class="topbar-inner">
             <div class="brand">
-              <div class="brand-title"><h1>Opportunity Platform</h1></div>
+              <div class="brand-title"><h1>Startuppy</h1></div>
               <div class="brand-sub">Job detail</div>
             </div>
             ${renderTabNav("jobs")}
@@ -1876,7 +1876,7 @@
           <header class="topbar">
             <div class="topbar-inner">
               <div class="brand">
-                <div class="brand-title"><h1>Opportunity Platform</h1></div>
+                <div class="brand-title"><h1>Startuppy</h1></div>
               </div>
               ${renderTabNav("")}
             </div>
