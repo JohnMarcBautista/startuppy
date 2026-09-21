@@ -2,10 +2,24 @@
 
 Browse-first dashboard with two tabs:
 
-1. **Companies** — YC Summer 2026 batch with industry/tags/rebrand filters
+1. **Companies** — Multi-source accelerator companies with source/batch/industry/tags filters
 2. **Jobs** — Curated job opportunities with fit/status/remote filters
 
 Static site: card grids, hash routes for detail views, local watchlists (browser `localStorage`).
+
+## Sources
+
+Companies are aggregated from five accelerator sources:
+
+| Source | Label | Description |
+|--------|-------|-------------|
+| `yc` | Y Combinator | W26/S26/F26 batches |
+| `techstars` | Techstars | Recent 2023+ cohorts |
+| `ef` | Entrepreneur First | Global EF alumni |
+| `antler` | Antler | Antler portfolio companies |
+| `a16z-speedrun` | a16z Speedrun | Speedrun program companies |
+
+Use the **Source** filter chips to select which accelerators to browse. The **Batch** filter only applies to YC companies.
 
 ## Routes
 
@@ -29,7 +43,7 @@ Import this folder (or GitHub repo) on Vercel as a static project. No build comm
 
 ## Data
 
-- `data.json` — YC S26 companies. Refresh by regenerating from the YC watch agent.
+- `data.json` — Multi-source company data (~4k companies, ~3.5 MB). Contains `sources`, `batches`, and `companies` arrays.
 - `jobs.json` — Discovered roles export. Replace the file with a fresh export to update.
 
 ### Refreshing jobs.json
