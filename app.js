@@ -64,6 +64,7 @@
     statuses: [],
     remotes: [],
     healthBadges: [],
+    series: [],
     watchlistOnly: false,
   };
 
@@ -378,6 +379,7 @@
         statuses: Array.isArray(parsed.statuses) ? parsed.statuses : [],
         remotes: Array.isArray(parsed.remotes) ? parsed.remotes : [],
         healthBadges: Array.isArray(parsed.healthBadges) ? parsed.healthBadges : [],
+        series: Array.isArray(parsed.series) ? parsed.series : [],
         watchlistOnly: !!parsed.watchlistOnly,
       };
     } catch {
@@ -395,6 +397,7 @@
           statuses: jobFilters.statuses,
           remotes: jobFilters.remotes,
           healthBadges: jobFilters.healthBadges,
+          series: jobFilters.series,
           watchlistOnly: jobFilters.watchlistOnly,
           scrollY: window.scrollY,
         })
@@ -426,6 +429,7 @@
       jobFilters.statuses.length > 0 ||
       jobFilters.remotes.length > 0 ||
       jobFilters.healthBadges.length > 0 ||
+      jobFilters.series.length > 0 ||
       jobFilters.watchlistOnly
     );
   }
@@ -608,6 +612,7 @@
     const statusSet = new Set(jobFilters.statuses);
     const remoteSet = new Set(jobFilters.remotes);
     const healthSet = new Set(jobFilters.healthBadges);
+    const seriesSet = new Set(jobFilters.series);
 
     return jobs.filter((j) => {
       if (jobFilters.watchlistOnly && !jobsWatchlist.has(j.id)) return false;
@@ -617,6 +622,10 @@
       if (healthSet.size) {
         const badge = j.healthBadge || "Unknown";
         if (!healthSet.has(badge)) return false;
+      }
+      if (seriesSet.size) {
+        const jobSeries = j.fundingSeries || "Unknown";
+        if (!seriesSet.has(jobSeries)) return false;
       }
       if (q) {
         const hay = [
@@ -1241,19 +1250,22 @@
   // ——— Render: Jobs List ———
 
   function getJobStats() {
-    if (!jobsData) return { total: 0, fits: {}, statuses: {}, remotes: {}, healthBadges: {} };
+    if (!jobsData) return { total: 0, fits: {}, statuses: {}, remotes: {}, healthBadges: {}, series: {} };
     const fits = {};
     const statuses = {};
     const remotes = {};
     const healthBadges = {};
+    const series = {};
     for (const j of jobsData) {
       fits[j.fit] = (fits[j.fit] || 0) + 1;
       statuses[j.status] = (statuses[j.status] || 0) + 1;
       remotes[j.remote] = (remotes[j.remote] || 0) + 1;
       const badge = j.healthBadge || "Unknown";
       healthBadges[badge] = (healthBadges[badge] || 0) + 1;
+      const jobSeries = j.fundingSeries || "Unknown";
+      series[jobSeries] = (series[jobSeries] || 0) + 1;
     }
-    return { total: jobsData.length, fits, statuses, remotes, healthBadges };
+    return { total: jobsData.length, fits, statuses, remotes, healthBadges, series };
   }
 
   function renderJobs() {
@@ -1290,6 +1302,13 @@
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
 
+    const seriesOrder = ["Seed", "Series A", "Series B", "Series C", "Series D+", "Growth/Late", "Public", "Unknown"];
+    const seriesEntries = Object.entries(stats.series).sort((a, b) => {
+      const ai = seriesOrder.indexOf(a[0]);
+      const bi = seriesOrder.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
     const fitChips = fitEntries
       .map(([name, count]) => {
         const pressed = jobFilters.fits.includes(name);
@@ -1317,6 +1336,13 @@
         const pressed = jobFilters.healthBadges.includes(name);
         const cls = `chip chip-health chip-health-${name.toLowerCase()}`;
         return `<button type="button" class="${cls}" data-filter="health" data-value="${escapeHtml(name)}" aria-pressed="${pressed}">${escapeHtml(name)}<span class="chip-count">${count}</span></button>`;
+      })
+      .join("");
+
+    const seriesChips = seriesEntries
+      .map(([name, count]) => {
+        const pressed = jobFilters.series.includes(name);
+        return `<button type="button" class="chip" data-filter="series" data-value="${escapeHtml(name)}" aria-pressed="${pressed}">${escapeHtml(name)}<span class="chip-count">${count}</span></button>`;
       })
       .join("");
 
@@ -1400,6 +1426,11 @@
               <div class="filter-label">Company Health</div>
               <div class="chip-scroll" role="group" aria-label="Filter by company health">${healthChips}</div>
             </div>
+
+            <div class="filter-section">
+              <div class="filter-label">Series</div>
+              <div class="chip-scroll" role="group" aria-label="Filter by funding series">${seriesChips}</div>
+            </div>
           </section>
 
           <div class="results-bar">
@@ -1456,6 +1487,27 @@
         return "health-caution";
       default:
         return "health-unknown";
+    }
+  }
+
+  function getSeriesClass(series) {
+    switch (series) {
+      case "Seed":
+        return "series-seed";
+      case "Series A":
+        return "series-a";
+      case "Series B":
+        return "series-b";
+      case "Series C":
+        return "series-c";
+      case "Series D+":
+        return "series-d";
+      case "Growth/Late":
+        return "series-growth";
+      case "Public":
+        return "series-public";
+      default:
+        return "series-unknown";
     }
   }
 
@@ -1560,11 +1612,17 @@
     const healthBadge = j.healthBadge || "Unknown";
     const healthClass = getHealthBadgeClass(healthBadge);
     const healthSummary = getHealthSummaryLine(j);
+    const jobSeries = j.fundingSeries || "Unknown";
+    const seriesClass = getSeriesClass(jobSeries);
 
     const remoteBadge = j.remote === "Yes"
       ? `<span class="badge badge-remote">Remote</span>`
       : j.remote === "Hybrid"
       ? `<span class="badge badge-hybrid">Hybrid</span>`
+      : "";
+
+    const seriesPill = jobSeries && jobSeries !== "Unknown"
+      ? `<span class="pill pill-series ${seriesClass}">${escapeHtml(jobSeries)}</span>`
       : "";
 
     const blurbHtml = j.companyBlurb
@@ -1599,6 +1657,7 @@
           <div class="card-pills">
             <span class="pill pill-fit ${fitClass}">${escapeHtml(j.fit)}</span>
             <span class="pill pill-status ${statusClass}">${escapeHtml(j.status)}</span>
+            ${seriesPill}
             ${j.location ? `<span class="pill">${escapeHtml(j.location)}</span>` : ""}
           </div>
         </a>
@@ -1676,6 +1735,16 @@
       });
     });
 
+    app.querySelectorAll('[data-filter="series"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-value");
+        const idx = jobFilters.series.indexOf(v);
+        if (idx >= 0) jobFilters.series.splice(idx, 1);
+        else jobFilters.series.push(v);
+        rerenderJobsPreserving(null, false);
+      });
+    });
+
     app.querySelectorAll("[data-action]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const action = btn.getAttribute("data-action");
@@ -1691,6 +1760,7 @@
           jobFilters.statuses = [];
           jobFilters.remotes = [];
           jobFilters.healthBadges = [];
+          jobFilters.series = [];
           jobFilters.watchlistOnly = false;
           rerenderJobsPreserving(null, false);
         }
@@ -1744,6 +1814,8 @@
     const watched = isJobWatched(job.id);
     const fitClass = getFitClass(job.fit);
     const statusClass = getStatusClass(job.status);
+    const jobSeries = job.fundingSeries || "Unknown";
+    const seriesClass = getSeriesClass(jobSeries);
 
     const remoteBadge = job.remote === "Yes"
       ? `<span class="badge badge-remote">Remote</span>`
@@ -1752,6 +1824,8 @@
       : job.remote === "No"
       ? `<span class="badge badge-onsite">On-site</span>`
       : "";
+
+    const seriesBadge = `<span class="pill pill-series ${seriesClass}">${escapeHtml(jobSeries)}</span>`;
 
     const blurbSection = job.companyBlurb
       ? `<p class="detail-blurb">${escapeHtml(job.companyBlurb)}</p>`
@@ -1785,6 +1859,7 @@
               <div class="detail-pills">
                 <span class="pill pill-fit ${fitClass}">${escapeHtml(job.fit)} Fit</span>
                 <span class="pill pill-status ${statusClass}">${escapeHtml(job.status)}</span>
+                ${seriesBadge}
                 ${remoteBadge}
               </div>
               <div class="detail-actions">
@@ -1828,6 +1903,7 @@
                 <div class="meta-item"><dt>Compensation</dt><dd>${escapeHtml(job.compensation || "—")}</dd></div>
                 <div class="meta-item"><dt>Source</dt><dd>${escapeHtml(job.source || "—")}</dd></div>
                 <div class="meta-item"><dt>Status</dt><dd><span class="pill pill-status ${statusClass}">${escapeHtml(job.status || "—")}</span></dd></div>
+                <div class="meta-item"><dt>Series</dt><dd><span class="pill pill-series ${seriesClass}">${escapeHtml(jobSeries)}</span></dd></div>
                 <div class="meta-item"><dt>Date Found</dt><dd>${escapeHtml(formatDate(job.dateFound))}</dd></div>
                 <div class="meta-item"><dt>Last Checked</dt><dd>${escapeHtml(formatDate(job.lastChecked))}</dd></div>
               </dl>
