@@ -44,9 +44,10 @@
    *   companyBlurb?: string, website?: string, logoUrl?: string
    * }} Job */
 
-  /** @type {{ q: string, batches: string[], industries: string[], tags: string[], rebrandOnly: boolean, watchlistOnly: boolean, tagsExpanded: boolean, tagQuery: string }} */
+  /** @type {{ q: string, sources: string[], batches: string[], industries: string[], tags: string[], rebrandOnly: boolean, watchlistOnly: boolean, tagsExpanded: boolean, tagQuery: string }} */
   let filters = {
     q: "",
+    sources: [],
     batches: [],
     industries: [],
     tags: [],
@@ -296,6 +297,7 @@
       const parsed = JSON.parse(raw);
       filters = {
         q: typeof parsed.q === "string" ? parsed.q : "",
+        sources: Array.isArray(parsed.sources) ? parsed.sources : [],
         batches: Array.isArray(parsed.batches) ? parsed.batches : [],
         industries: Array.isArray(parsed.industries) ? parsed.industries : [],
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
@@ -315,6 +317,7 @@
         STORAGE_KEY,
         JSON.stringify({
           q: filters.q,
+          sources: filters.sources,
           batches: filters.batches,
           industries: filters.industries,
           tags: filters.tags,
@@ -347,9 +350,12 @@
 
   function hasActiveFilters() {
     const allBatches = data && data.batches ? data.batches.map((b) => b.batch_short) : [];
+    const allSources = data && data.sources ? data.sources.map((s) => s.id) : [];
     const batchesActive = filters.batches.length > 0 && filters.batches.length < allBatches.length;
+    const sourcesActive = filters.sources.length > 0 && filters.sources.length < allSources.length;
     return (
       filters.q.trim() !== "" ||
+      sourcesActive ||
       batchesActive ||
       filters.industries.length > 0 ||
       filters.tags.length > 0 ||
@@ -497,6 +503,13 @@
 
   // ——— Filtering: Companies ———
 
+  function getSelectedSources() {
+    if (!data || !data.sources) return [];
+    const allSources = data.sources.map((s) => s.id);
+    if (filters.sources.length === 0) return allSources;
+    return filters.sources;
+  }
+
   function getSelectedBatches() {
     if (!data || !data.batches) return [];
     const allBatches = data.batches.map((b) => b.batch_short);
@@ -504,12 +517,19 @@
     return filters.batches;
   }
 
-  function computeBatchStats(selectedBatches) {
+  function computeStats(selectedSources, selectedBatches) {
     if (!data || !data.companies) {
       return { company_count: 0, hiring_count: 0, rebrand_count: 0, industry_summary: {}, top_tags: {} };
     }
+    const sourceSet = new Set(selectedSources);
     const batchSet = new Set(selectedBatches);
-    const companies = data.companies.filter((c) => batchSet.has(c.batch_short));
+    
+    const companies = data.companies.filter((c) => {
+      if (!sourceSet.has(c.source)) return false;
+      if (c.source === "yc" && !batchSet.has(c.batch_short)) return false;
+      return true;
+    });
+    
     const industry_summary = {};
     const tagCounts = {};
     let hiring_count = 0;
@@ -541,13 +561,16 @@
 
   function applyFilters(companies) {
     const q = filters.q.trim().toLowerCase();
+    const selectedSources = getSelectedSources();
     const selectedBatches = getSelectedBatches();
+    const sourceSet = new Set(selectedSources);
     const batchSet = new Set(selectedBatches);
     const indSet = new Set(filters.industries);
     const tagSet = new Set(filters.tags);
 
     return companies.filter((c) => {
-      if (!batchSet.has(c.batch_short)) return false;
+      if (!sourceSet.has(c.source)) return false;
+      if (c.source === "yc" && !batchSet.has(c.batch_short)) return false;
       if (filters.watchlistOnly && !watchlist.has(c.slug)) return false;
       if (filters.rebrandOnly && !c.has_rebrand) return false;
       if (indSet.size && !indSet.has(c.industry)) return false;
@@ -604,8 +627,9 @@
   // ——— Render: Companies Home ———
 
   function renderHome() {
+    const selectedSources = getSelectedSources();
     const selectedBatches = getSelectedBatches();
-    const stats = computeBatchStats(selectedBatches);
+    const stats = computeStats(selectedSources, selectedBatches);
 
     const industries = Object.entries(stats.industry_summary).sort(
       (a, b) => b[1] - a[1]
@@ -615,7 +639,16 @@
     const active = hasActiveFilters();
     const watchCount = watchlist.size;
 
+    const allSources = data.sources || [];
+    const sourceChips = allSources
+      .map((s) => {
+        const pressed = filters.sources.length === 0 || filters.sources.includes(s.id);
+        return `<button type="button" class="chip chip-source" data-filter="source" data-value="${escapeHtml(s.id)}" aria-pressed="${pressed}">${escapeHtml(s.label)}<span class="chip-count">${s.count}</span></button>`;
+      })
+      .join("");
+
     const allBatches = data.batches || [];
+    const ycSelected = filters.sources.length === 0 || filters.sources.includes("yc");
     const batchChips = allBatches
       .map((b) => {
         const pressed = filters.batches.length === 0 || filters.batches.includes(b.batch_short);
@@ -682,7 +715,9 @@
       cards = `<div class="grid" role="list">${filtered.map(renderCard).join("")}</div>`;
     }
 
-    const batchLabel = allBatches.map((b) => b.batch_short).join(" · ");
+    const sourceLabel = selectedSources.length === allSources.length 
+      ? "All sources" 
+      : selectedSources.map(id => allSources.find(s => s.id === id)?.label || id).join(", ");
 
     app.innerHTML = `
       <div class="shell">
@@ -693,7 +728,7 @@
                 <h1>Opportunity Platform</h1>
               </div>
               <div class="brand-sub">
-                YC ${batchLabel} · Updated ${escapeHtml(formatPulledAt(data.pulled_at))}
+                ${escapeHtml(sourceLabel)} · Updated ${escapeHtml(formatPulledAt(data.pulled_at))}
               </div>
             </div>
             ${renderTabNav("companies")}
@@ -703,7 +738,7 @@
         <main class="main">
           <div class="page-header">
             <h2 class="page-title">Companies</h2>
-            <div class="stat-chips" aria-label="Batch stats">
+            <div class="stat-chips" aria-label="Stats">
               <span class="stat-chip"><strong>${stats.company_count}</strong> companies</span>
               <span class="stat-chip"><strong>${industries.length}</strong> industries</span>
               <span class="stat-chip"><strong>${stats.rebrand_count}</strong> rebrands</span>
@@ -736,7 +771,12 @@
             </div>
 
             <div class="filter-section">
-              <div class="filter-label">Batch</div>
+              <div class="filter-label">Source</div>
+              <div class="chip-scroll" role="group" aria-label="Filter by source">${sourceChips}</div>
+            </div>
+
+            <div class="filter-section ${ycSelected ? "" : "filter-section-disabled"}" ${ycSelected ? "" : 'title="Select Y Combinator source to filter by batch"'}>
+              <div class="filter-label">Batch <span class="filter-label-note">(YC only)</span></div>
               <div class="chip-scroll" role="group" aria-label="Filter by batch">${batchChips}</div>
             </div>
 
@@ -764,18 +804,45 @@
           ${cards}
         </main>
 
-        <p class="footer-stub">Browse-only for ${batchLabel}</p>
+        <p class="footer-stub">Browse ${data.company_count.toLocaleString()} companies across ${allSources.length} accelerators</p>
       </div>
     `;
 
     bindHomeEvents();
   }
 
+  function getSourceBadgeClass(source) {
+    switch (source) {
+      case "yc": return "badge-source-yc";
+      case "techstars": return "badge-source-techstars";
+      case "ef": return "badge-source-ef";
+      case "antler": return "badge-source-antler";
+      case "a16z-speedrun": return "badge-source-speedrun";
+      default: return "badge-source";
+    }
+  }
+
+  function getSourceShortLabel(source) {
+    switch (source) {
+      case "yc": return "YC";
+      case "techstars": return "TS";
+      case "ef": return "EF";
+      case "antler": return "Antler";
+      case "a16z-speedrun": return "Speedrun";
+      default: return source;
+    }
+  }
+
   function renderCard(c) {
     const tags = (c.tags || []).slice(0, 3);
     const watched = isWatched(c.slug);
+    const sourceBadgeClass = getSourceBadgeClass(c.source);
+    const sourceLabel = getSourceShortLabel(c.source);
     const badges = [
-      c.batch_short
+      c.source
+        ? `<span class="badge ${sourceBadgeClass}">${escapeHtml(sourceLabel)}</span>`
+        : "",
+      c.source === "yc" && c.batch_short
         ? `<span class="badge badge-batch">${escapeHtml(c.batch_short)}</span>`
         : "",
       c.has_rebrand
@@ -861,6 +928,32 @@
       });
     }
 
+    app.querySelectorAll('[data-filter="source"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-value");
+        const allSources = data.sources ? data.sources.map((s) => s.id) : [];
+        if (filters.sources.length === 0) {
+          filters.sources = allSources.filter((s) => s !== v);
+        } else {
+          const idx = filters.sources.indexOf(v);
+          if (idx >= 0) {
+            filters.sources.splice(idx, 1);
+            if (filters.sources.length === 0) {
+              filters.sources = [];
+            }
+          } else {
+            filters.sources.push(v);
+            if (filters.sources.length === allSources.length) {
+              filters.sources = [];
+            }
+          }
+        }
+        filters.industries = [];
+        filters.tags = [];
+        rerenderHomePreserving(null, false);
+      });
+    });
+
     app.querySelectorAll('[data-filter="batch"]').forEach((btn) => {
       btn.addEventListener("click", () => {
         const v = btn.getAttribute("data-value");
@@ -929,6 +1022,7 @@
           rerenderHomePreserving(null, false);
         } else if (action === "clear") {
           filters.q = "";
+          filters.sources = [];
           filters.batches = [];
           filters.industries = [];
           filters.tags = [];
@@ -982,7 +1076,6 @@
 
   function renderDetail(slug) {
     const company = data.companies.find((c) => c.slug === slug);
-    const batchLabel = data.batches ? data.batches.map((b) => b.batch_short).join(" / ") : "YC";
     if (!company) {
       app.innerHTML = `
         <div class="shell">
@@ -997,7 +1090,7 @@
           <main class="main">
             <div class="not-found">
               <h1>Company not found</h1>
-              <p>No company matches <code>${escapeHtml(slug)}</code> in the ${batchLabel} batches.</p>
+              <p>No company matches <code>${escapeHtml(slug)}</code> in the database.</p>
               <a class="btn btn-primary" href="#/">Back to companies</a>
             </div>
           </main>
@@ -1010,6 +1103,20 @@
     const tags = (company.tags || [])
       .map((t) => `<span class="pill">${escapeHtml(t)}</span>`)
       .join("");
+
+    const sourceBadgeClass = getSourceBadgeClass(company.source);
+    const sourceLabel = company.source_label || getSourceShortLabel(company.source);
+    
+    const getProfileLinkLabel = (source) => {
+      switch (source) {
+        case "yc": return "YC profile";
+        case "techstars": return "Techstars profile";
+        case "ef": return "EF profile";
+        case "antler": return "Antler profile";
+        case "a16z-speedrun": return "Speedrun page";
+        default: return "Profile";
+      }
+    };
 
     const former =
       company.former_names && company.former_names.length
@@ -1055,7 +1162,9 @@
               <h1>${escapeHtml(company.name)}</h1>
               <p class="detail-one-liner">${escapeHtml(company.one_liner || "")}</p>
               <div class="detail-pills">
-                ${company.batch_short ? `<span class="badge badge-batch">${escapeHtml(company.batch_short)}</span>` : ""}
+                ${company.source ? `<span class="badge ${sourceBadgeClass}">${escapeHtml(sourceLabel)}</span>` : ""}
+                ${company.source === "yc" && company.batch_short ? `<span class="badge badge-batch">${escapeHtml(company.batch_short)}</span>` : ""}
+                ${company.cohort && company.source !== "yc" ? `<span class="badge badge-cohort">${escapeHtml(company.cohort)}</span>` : ""}
                 ${company.industry ? `<span class="pill pill-industry">${escapeHtml(company.industry)}</span>` : ""}
                 ${tags}
                 ${company.has_rebrand ? `<span class="badge badge-rebrand">Rebrand</span>` : ""}
@@ -1067,7 +1176,7 @@
                   ${watched ? "On watchlist" : "Add to watchlist"}
                 </button>
                 ${company.website ? `<a class="btn btn-primary" href="${escapeHtml(company.website)}" target="_blank" rel="noopener noreferrer">Website<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
-                ${company.yc_url ? `<a class="btn btn-secondary" href="${escapeHtml(company.yc_url)}" target="_blank" rel="noopener noreferrer">YC profile<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
+                ${company.yc_url ? `<a class="btn btn-secondary" href="${escapeHtml(company.yc_url)}" target="_blank" rel="noopener noreferrer">${getProfileLinkLabel(company.source)}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></a>` : ""}
               </div>
             </div>
           </div>
@@ -1081,13 +1190,14 @@
             <section class="section">
               <h2>Positioning</h2>
               <dl class="meta-grid">
+                <div class="meta-item"><dt>Source</dt><dd>${escapeHtml(company.source_label || company.source || "—")}</dd></div>
+                <div class="meta-item"><dt>Cohort / Batch</dt><dd>${escapeHtml(company.cohort || company.batch || "—")}</dd></div>
                 <div class="meta-item"><dt>Industry</dt><dd>${escapeHtml(company.industry || "—")}</dd></div>
                 <div class="meta-item"><dt>Subindustry</dt><dd>${escapeHtml(company.subindustry || "—")}</dd></div>
                 <div class="meta-item"><dt>Stage</dt><dd>${escapeHtml(company.stage || "—")}</dd></div>
                 <div class="meta-item"><dt>Status</dt><dd>${escapeHtml(company.status || "—")}</dd></div>
                 <div class="meta-item"><dt>Team size</dt><dd>${escapeHtml(teamSize)}</dd></div>
                 <div class="meta-item"><dt>Locations</dt><dd>${escapeHtml(company.locations || "—")}</dd></div>
-                <div class="meta-item"><dt>Batch</dt><dd>${escapeHtml(company.batch || data.batch)}</dd></div>
                 <div class="meta-item"><dt>Tags</dt><dd>${(company.tags || []).length ? escapeHtml((company.tags || []).join(", ")) : "—"}</dd></div>
               </dl>
             </section>
