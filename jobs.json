@@ -9888,5 +9888,97 @@
       "Company site — https://www.texturehq.com"
     ],
     "fundingSeries": "Series A"
+  },
+  {
+    "id": "vesta-product-manager",
+    "dateFound": "2026-10-09",
+    "company": "Vesta",
+    "role": "Product Manager",
+    "roleFamily": "Applied AI Product Manager; Product Lead / Senior Product Manager, AI & New Products",
+    "fit": "High",
+    "location": "Remote (United States); hubs in Bay Area and New York",
+    "remote": "Remote",
+    "compensation": "$175K-$225K base + equity",
+    "source": "Ashby",
+    "url": "https://jobs.ashbyhq.com/vesta/fda6030d-5655-4077-8345-b3d5ee66527c",
+    "status": "Watch",
+    "whyItFits": "Own a product area end-to-end on an AI-native mortgage LOS where people and AI agents work the same loan file; shape how agents automate document review, underwriting support, and closing workflows at PMF with 12x YoY revenue and $100B+ annual originations on the platform. fundingSeries=Series B ($30M Conversion Capital-led, Oct 8 2026; $85M total). Founders are early Blend alumni building modern bank infrastructure = strong product leaders to learn from. Mortgage expertise not required; Adobe generative webpage beta + Ohm AI for field workflows map to applied-AI product ownership in a regulated ops domain.",
+    "watchouts": "JD does not state a years bar but targets inflection-point builders who are proactive; mortgage domain ramp is real even if not required up front; competing with ICE Mortgage Technology and AI-native LOS peers (e.g. Xpanse); remote-first but Bay Area/NY hubs; posting open since 2026-09-03 (pre-raise) so re-check live before applying.",
+    "lastChecked": "2026-10-12",
+    "notes": "fundingSeries=Series B ($30M Conversion Capital-led; Vesta press Oct 8 2026 + TechCrunch Oct 8 2026; total $85M). Ashby isListed=true + page HTTP 200 on 2026-10-09. Comp from posting: $175,000-$225,000/yr + equity. Verified live 2026-10-09.",
+    "briefUrl": "",
+    "companyBlurb": "AI-native mortgage loan origination system (LOS) — lenders and AI agents work the same loan file across underwriting, conditions, and closing.",
+    "website": "https://www.vesta.com",
+    "logoUrl": "https://www.google.com/s2/favicons?domain=vesta.com&sz=128",
+    "healthBadge": "Healthy",
+    "healthCheckedAt": "2026-10-12",
+    "layoff": {
+      "flag": false,
+      "summary": "",
+      "sourceUrl": "",
+      "date": ""
+    },
+    "funding": {
+      "summary": "Series B $30M · Oct 8, 2026 · Conversion Capital-led (Pennymac, New American Funding, nbkc, Citi Ventures, FirstKey, Navitas, a16z, Zigg, Parker89); $85M total",
+      "date": "2026-10-08",
+      "sourceUrl": "https://www.vesta.com/press/vesta-raises-30-million-series-b"
+    },
+    "headcount": {
+      "summary": "",
+      "source": "unknown"
+    },
+    "healthEvidence": [
+      "Funding: Series B $30M · Oct 8, 2026 · Conversion Capital-led (Pennymac, New American Funding, nbkc, Citi Ventures, FirstKey, Navitas, a16z, Zigg, Parker89); $85M total — https://www.vesta.com/press/vesta-raises-30-million-series-b",
+      "TechCrunch — https://techcrunch.com/2026/10/08/vesta-raises-30m-as-lenders-adopt-ai-agents/",
+      "Layoffs.fyi / WARN / news scan 2026-10-12: no layoff/RIF found",
+      "Company site — https://www.vesta.com"
+    ],
+    "fundingSeries": "Series B"
+  },
+  {
+    "id": "spade-product-manager-agent-platform",
+    "dateFound": "2026-10-09",
+    "company": "Spade",
+    "role": "Product Manager - Agent Platform",
+    "roleFamily": "Applied AI Product Manager; Product Lead / Senior Product Manager, AI & New Products",
+    "fit": "High",
+    "location": "New York, NY (hybrid, Flatiron office at least 2 days/week)",
+    "remote": "Hybrid",
+    "compensation": "$185K-$220K base + equity",
+    "source": "Ashby",
+    "url": "https://jobs.ashbyhq.com/spade/847519dc-6275-4a32-bb2b-787d95840b5d",
+    "status": "Watch",
+    "whyItFits": "First PM for Spade's nascent AI Agent and Console product line: 0-to-1 agent capabilities on top of a proven transaction-enrichment data platform used by Stripe, Bilt, Mercury, FIS. fundingSeries=Series B ($40M Oak HC/FT-led, Mar 24 2026) after 470% YoY growth and peak 1.9B daily transactions. Maps to Applied AI / New Products: Adobe generative webpage beta and Ohm AI agent work = shipped LLM products with eng/data partners; CEO-adjacent ownership at a still-small Series B team.",
+    "watchouts": "5+ yrs PM plus prior AI/LLM product experience stated; NYC hybrid 2 days/week required; fintech domain nice-to-have; same board also has PM - Enrichment ($185-220K) which prefers fintech/payments background and is more API/data-platform than agent 0-to-1; apply to one role per their note.",
+    "lastChecked": "2026-10-12",
+    "notes": "fundingSeries=Series B ($40M Oak HC/FT-led with a16z, Flourish, Gradient, NAventures, YC; Spade blog + Oak HC/FT Mar 24 2026). Ashby isListed=true + page HTTP 200. Comp from posting header: $185K-$220K + equity. Sibling role PM - Enrichment also live (same comp; fintech PM bar). Verified live 2026-10-09.",
+    "briefUrl": "",
+    "companyBlurb": "Data and AI platform for transaction enrichment — turns messy card/ACH/wire strings into verified merchant records for banks and fintechs (Stripe, Bilt, Mercury, FIS).",
+    "website": "https://www.spade.com",
+    "logoUrl": "https://www.google.com/s2/favicons?domain=spade.com&sz=128",
+    "healthBadge": "Healthy",
+    "healthCheckedAt": "2026-10-12",
+    "layoff": {
+      "flag": false,
+      "summary": "",
+      "sourceUrl": "",
+      "date": ""
+    },
+    "funding": {
+      "summary": "Series B $40M · Mar 24, 2026 · Oak HC/FT-led (a16z, Flourish, Gradient, NAventures, YC)",
+      "date": "2026-03-24",
+      "sourceUrl": "https://spade.com/resources/spade-series-b-owning-the-data-layer-for-financial-services/"
+    },
+    "headcount": {
+      "summary": "",
+      "source": "unknown"
+    },
+    "healthEvidence": [
+      "Funding: Series B $40M · Mar 24, 2026 · Oak HC/FT-led (a16z, Flourish, Gradient, NAventures, YC) — https://spade.com/resources/spade-series-b-owning-the-data-layer-for-financial-services/",
+      "Oak HC/FT — https://www.oakhcft.com/news/spade-announces-40m-series-b-raise-to-build-the-data-and-ai-platform-for-modern-finance",
+      "Layoffs.fyi / WARN / news scan 2026-10-12: no layoff/RIF found",
+      "Company site — https://www.spade.com"
+    ],
+    "fundingSeries": "Series B"
   }
 ]
